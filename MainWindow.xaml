@@ -1,0 +1,189 @@
+﻿<Window x:Class="DBReader.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DB Reader - Budda Edition" 
+        Height="650" Width="1100" 
+        Icon="pack://application:,,,/Assets/buda.ico"
+        MinHeight="600" MinWidth="1000"
+        Background="#0F0F0F" 
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="SingleBorderWindow"
+        ResizeMode="CanResizeWithGrip"
+        AllowsTransparency="False">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Background="#161616" BorderBrush="#333" BorderThickness="0,0,1,0" Padding="15">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Button x:Name="BtnSync" Grid.Row="0" Content="🔄 Resync DB" 
+                        Click="BtnSync_Click" Height="40" Margin="0,0,0,15" 
+                        Background="#1E1E1E" Foreground="#1E90FF" FontWeight="Bold">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="5"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+
+                <TextBlock Grid.Row="1" Text="Pesquisar Jogador:" Foreground="#888" FontSize="11" Margin="0,0,0,5"/>
+                <TextBox x:Name="TxtSearch" Grid.Row="2" TextChanged="TxtSearch_TextChanged" 
+                         Height="35" Margin="0,0,0,15" VerticalContentAlignment="Center" 
+                         Background="#1A1A1A" Foreground="White" BorderBrush="#333" Padding="8"/>
+
+                <DataGrid x:Name="GridPlayers" Grid.Row="3" AutoGenerateColumns="False" 
+                          IsReadOnly="True" CanUserAddRows="False" Background="Transparent" 
+                          Foreground="DodgerBlue" BorderThickness="0" 
+                          SelectionChanged="GridPlayers_SelectionChanged" 
+                          RowBackground="#161616" AlternatingRowBackground="#1A1A1A" 
+                          HeadersVisibility="Column" GridLinesVisibility="None" 
+                          VerticalScrollBarVisibility="Auto" 
+                          FontFamily="Bahnschrift SemiBold SemiCondensed" FontSize="13">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
+                        <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <TabControl Grid.Column="1" Background="#121212" BorderBrush="#333" Margin="15">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Padding" Value="15,8"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Style>
+            </TabControl.Resources>
+
+            <TabItem Header="📊 Geral">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="25">
+                        <Border Background="#161616" BorderBrush="#1E90FF" BorderThickness="1" CornerRadius="10" Padding="25">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Nome:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="0" Margin="8"/>
+                                <TextBlock x:Name="StatusName" Text="---" Foreground="White" Grid.Row="0" Grid.Column="1" Margin="8" FontSize="20" FontWeight="Bold"/>
+
+                                <TextBlock Text="Conta:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="1" Margin="8"/>
+                                <TextBlock x:Name="StatusAccount" Text="---" Foreground="White" Grid.Row="1" Grid.Column="1" Margin="8"/>
+
+                                <TextBlock Text="Class:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="2" Margin="8"/>
+                                <TextBlock x:Name="StatusClass" Text="---" Foreground="White" Grid.Row="2" Grid.Column="1" Margin="8"/>
+
+                                <TextBlock Text="Level:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="3" Margin="8"/>
+                                <TextBlock x:Name="StatusLevel" Text="---" Foreground="White" Grid.Row="3" Grid.Column="1" Margin="8"/>
+
+                                <TextBlock Text="Mapa:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="4" Margin="8"/>
+                                <TextBlock x:Name="StatusLoc" Text="---" Foreground="White" Grid.Row="4" Grid.Column="1" Margin="8"/>
+
+                                <TextBlock Text="Gold:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="5" Margin="8" VerticalAlignment="Center"/>
+                                <StackPanel x:Name="GoldContainer" Orientation="Horizontal" Grid.Row="5" Grid.Column="1" Margin="8"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="✨ TALENTOS">
+                <Grid Margin="15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="220"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Viewbox Grid.Column="0" MaxHeight="400" VerticalAlignment="Top" HorizontalAlignment="Left">
+                        <Canvas Width="112" Height="205" Background="#0A0A0A">
+                            <Image Width="112" Height="205" Source="pack://application:,,,/Assets/talent_bg.png" 
+                                   Stretch="UniformToFill" Opacity="0.8" RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                            <Image x:Name="SlotG2" Canvas.Left="13" Canvas.Top="70" Width="24" Height="24"/>
+                            <Image x:Name="SlotG1" Canvas.Left="45" Canvas.Top="70" Width="24" Height="24"/>
+                            <Image x:Name="SlotM2" Canvas.Left="78" Canvas.Top="70" Width="24" Height="24"/>
+                            <Image x:Name="SlotM1" Canvas.Left="13" Canvas.Top="107" Width="24" Height="24"/>
+                            <Image x:Name="SlotS1" Canvas.Left="78" Canvas.Top="107" Width="24" Height="24"/>
+                            <Image x:Name="SlotS2" Canvas.Left="13" Canvas.Top="144" Width="24" Height="24"/>
+                            <Image x:Name="SlotU1" Canvas.Left="45" Canvas.Top="144" Width="24" Height="24"/>
+                            <Image x:Name="SlotU2" Canvas.Left="78" Canvas.Top="144" Width="24" Height="24"/>
+                        </Canvas>
+                    </Viewbox>
+
+                    <ItemsControl x:Name="TalentNameList" Grid.Column="2" VerticalAlignment="Top">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#161616" BorderBrush="#333" BorderThickness="1" CornerRadius="3" Margin="0,0,0,4" Padding="8">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Category}" Foreground="#1E90FF" FontSize="9" FontWeight="Bold" TextAlignment="Right"/>
+                                        <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="🎒 MOCHILA">
+                <ScrollViewer Background="#0A0A0A" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="InventoryGrid" HorizontalAlignment="Center">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="12" Margin="0" VerticalAlignment="Top"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Width="50" Height="50" Margin="0" ToolTip="{Binding ToolTip}">
+                                    <Image Source="pack://application:,,,/Assets/slot_bg.png"
+                                           Width="50" Height="50" Stretch="Fill" 
+                                           RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                    <Image Source="{Binding Icon}" Stretch="Uniform" Margin="4" 
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    <TextBlock Text="{Binding Amount}" Foreground="#00FF00" FontSize="10" FontWeight="Bold" 
+                                               VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,3,2">
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect BlurRadius="1" ShadowDepth="1" Color="Black"/>
+                                        </TextBlock.Effect>
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Amount}" Value="0">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
