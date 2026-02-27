@@ -2,7 +2,7 @@
 Você pode baixar a versão executável pronta para uso (Budda Edition) através do link abaixo:
 
 
-[🚀 Baixar DB Reader_Buda.exe](https://drive.google.com/file/d/1sv6jdoxYQ6q14SB8YQrfuiWDWQc6Y29B/view?usp=sharing)
+[🚀 Baixar DB Reader_Buda.exe](https://drive.google.com/file/d/1VTA4qZraVbROcTZo9xT78lwNWJjUHzW8/view?usp=sharing)
 
 
 # 📊 DB Reader - Budda Edition
