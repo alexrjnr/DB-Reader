@@ -28,7 +28,7 @@
 
                 <Button x:Name="BtnSync" Grid.Row="0" Content="🔄 Resync DB" 
                         Click="BtnSync_Click" Height="40" Margin="0,0,0,15" 
-                        Background="#1E1E1E" Foreground="#1E90FF" FontWeight="Bold">
+                        Background="#1E1E1E" Foreground="White" FontWeight="Bold">
                     <Button.Resources>
                         <Style TargetType="Border">
                             <Setter Property="CornerRadius" Value="5"/>
@@ -36,14 +36,14 @@
                     </Button.Resources>
                 </Button>
 
-                <TextBlock Grid.Row="1" Text="Pesquisar Jogador:" Foreground="#888" FontSize="11" Margin="0,0,0,5"/>
+                <TextBlock Grid.Row="1" Text="Filtrar Jogador:" Foreground="White" FontSize="11" Margin="0,0,0,5"/>
                 <TextBox x:Name="TxtSearch" Grid.Row="2" TextChanged="TxtSearch_TextChanged" 
                          Height="35" Margin="0,0,0,15" VerticalContentAlignment="Center" 
                          Background="#1A1A1A" Foreground="White" BorderBrush="#333" Padding="8"/>
 
                 <DataGrid x:Name="GridPlayers" Grid.Row="3" AutoGenerateColumns="False" 
                           IsReadOnly="True" CanUserAddRows="False" Background="Transparent" 
-                          Foreground="DodgerBlue" BorderThickness="0" 
+                          Foreground="Black" BorderThickness="0" 
                           SelectionChanged="GridPlayers_SelectionChanged" 
                           RowBackground="#161616" AlternatingRowBackground="#1A1A1A" 
                           HeadersVisibility="Column" GridLinesVisibility="None" 
@@ -69,8 +69,15 @@
             <TabItem Header="📊 Geral">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="25">
-                        <Border Background="#161616" BorderBrush="#1E90FF" BorderThickness="1" CornerRadius="10" Padding="25">
+
+                        <Border Background="#161616"
+                    BorderBrush="Aqua"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="25">
+
                             <Grid>
+
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
@@ -79,30 +86,106 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
+
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="140"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Text="Nome:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="0" Margin="8"/>
-                                <TextBlock x:Name="StatusName" Text="---" Foreground="White" Grid.Row="0" Grid.Column="1" Margin="8" FontSize="20" FontWeight="Bold"/>
+                                <!-- Nome -->
+                                <TextBlock Text="Nome:" Foreground="Aqua" FontWeight="Bold" Grid.Row="0" VerticalAlignment="Center"/>
+                                <Border Grid.Row="0" Grid.Column="1"
+                            Background="#101010"
+                            BorderBrush="Aqua"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="8"
+                            Margin="0,4">
+                                    <TextBlock x:Name="StatusName"
+                                   Text="---"
+                                   Foreground="White"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"/>
+                                </Border>
 
-                                <TextBlock Text="Conta:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="1" Margin="8"/>
-                                <TextBlock x:Name="StatusAccount" Text="---" Foreground="White" Grid.Row="1" Grid.Column="1" Margin="8"/>
+                                <!-- Conta -->
+                                <TextBlock Text="Conta:" Foreground="Aqua" FontWeight="Bold" Grid.Row="1" VerticalAlignment="Center"/>
+                                <Border Grid.Row="1" Grid.Column="1"
+                            Background="#101010"
+                            BorderBrush="Aqua"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="8"
+                            Margin="0,4">
+                                    <TextBlock x:Name="StatusAccount"
+                                   Text="---"
+                                   Foreground="White"/>
+                                </Border>
 
-                                <TextBlock Text="Class:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="2" Margin="8"/>
-                                <TextBlock x:Name="StatusClass" Text="---" Foreground="White" Grid.Row="2" Grid.Column="1" Margin="8"/>
+                                <!-- Class -->
+                                <TextBlock Text="Class:" Foreground="Aqua" FontWeight="Bold" Grid.Row="2" VerticalAlignment="Center"/>
+                                <Border Grid.Row="2" Grid.Column="1"
+                            Background="#101010"
+                            BorderBrush="Aqua"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="8"
+                            Margin="0,4">
+                                    <TextBlock x:Name="StatusClass"
+                                   Text="---"
+                                   Foreground="White"/>
+                                </Border>
 
-                                <TextBlock Text="Level:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="3" Margin="8"/>
-                                <TextBlock x:Name="StatusLevel" Text="---" Foreground="White" Grid.Row="3" Grid.Column="1" Margin="8"/>
+                                <!-- Level -->
+                                <TextBlock Text="Level:" Foreground="Aqua" FontWeight="Bold" Grid.Row="3" VerticalAlignment="Center"/>
+                                <Border Grid.Row="3" Grid.Column="1"
+                            Background="#101010"
+                            BorderBrush="Aqua"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="8"
+                            Margin="0,4">
+                                    <TextBlock x:Name="StatusLevel"
+                                   Text="---"
+                                   Foreground="White"/>
+                                </Border>
 
-                                <TextBlock Text="Mapa:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="4" Margin="8"/>
-                                <TextBlock x:Name="StatusLoc" Text="---" Foreground="White" Grid.Row="4" Grid.Column="1" Margin="8"/>
+                                <!-- Mapa -->
+                                <TextBlock Text="Mapa:" Foreground="Aqua" FontWeight="Bold" Grid.Row="4" VerticalAlignment="Center"/>
+                                <Border Grid.Row="4" Grid.Column="1"
+                            Background="#101010"
+                            BorderBrush="Aqua"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="8"
+                            Margin="0,4">
+                                    <TextBlock x:Name="StatusLoc"
+                                   Text="---"
+                                   Foreground="White"/>
+                                </Border>
 
-                                <TextBlock Text="Gold:" Foreground="#1E90FF" FontWeight="Bold" Grid.Row="5" Margin="8" VerticalAlignment="Center"/>
-                                <StackPanel x:Name="GoldContainer" Orientation="Horizontal" Grid.Row="5" Grid.Column="1" Margin="8"/>
+                                <!-- GOLD (Especial, mantendo seus desenhos) -->
+                                <TextBlock Text="Gold:" Foreground="Gold" FontWeight="Bold" Grid.Row="5" VerticalAlignment="Center"/>
+
+                                <Border Grid.Row="5" Grid.Column="1"
+                            Background="#1a1400"
+                            BorderBrush="Gold"
+                            BorderThickness="2"
+                            CornerRadius="8"
+                            Padding="8"
+                            Margin="0,4">
+
+                                    <!-- NÃO alterei sua estrutura -->
+                                    <StackPanel x:Name="GoldContainer"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center"/>
+
+                                </Border>
+
                             </Grid>
+
                         </Border>
+
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -112,7 +195,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="220"/>
+                        <ColumnDefinition Width="500"/>
                     </Grid.ColumnDefinitions>
 
                     <Viewbox Grid.Column="0" MaxHeight="400" VerticalAlignment="Top" HorizontalAlignment="Left">
@@ -134,9 +217,9 @@
                     <ItemsControl x:Name="TalentNameList" Grid.Column="2" VerticalAlignment="Top">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="#161616" BorderBrush="#333" BorderThickness="1" CornerRadius="3" Margin="0,0,0,4" Padding="8">
+                                <Border Background="#161616" BorderBrush="Aqua" BorderThickness="2" CornerRadius="10" Margin="0,0,0,10" Padding="8">
                                     <StackPanel>
-                                        <TextBlock Text="{Binding Category}" Foreground="#1E90FF" FontSize="9" FontWeight="Bold" TextAlignment="Right"/>
+                                        <TextBlock Text="{Binding Category}" Foreground="Aqua" FontSize="9" FontWeight="SemiBold" TextAlignment="Left"/>
                                         <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </Border>
@@ -163,7 +246,7 @@
                                     <Image Source="{Binding Icon}" Stretch="Uniform" Margin="4" 
                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                            RenderOptions.BitmapScalingMode="HighQuality"/>
-                                    <TextBlock Text="{Binding Amount}" Foreground="#00FF00" FontSize="10" FontWeight="Bold" 
+                                    <TextBlock Text="{Binding Amount}" Foreground="White" FontSize="15" FontWeight="SemiBold" 
                                                VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,3,2">
                                         <TextBlock.Effect>
                                             <DropShadowEffect BlurRadius="1" ShadowDepth="1" Color="Black"/>

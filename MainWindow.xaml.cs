@@ -1,5 +1,8 @@
-﻿using System;
+﻿using ImageMagick;
+using Npgsql;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -7,8 +10,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Npgsql;
-using ImageMagick;
 
 namespace DBReader
 {
@@ -17,6 +18,7 @@ namespace DBReader
         private readonly string _connStr;
         private readonly string _clientPath;
         private Dictionary<string, ItemData> _itemDb = new Dictionary<string, ItemData>();
+        private Dictionary<string, EnchantData> _enchantDb = new Dictionary<string, EnchantData>();
         private Dictionary<string, string> _nodes = new Dictionary<string, string>();
         private List<Player> _allPlayers = new List<Player>();
 
@@ -67,9 +69,12 @@ namespace DBReader
 
         public class ItemData
         {
+            public string Id { get; set; } = "";
             public string Name { get; set; } = "";
             public string IconCode { get; set; } = "";
             public string FlagHide { get; set; } = "";
+            public int Level { get; set; }
+            public string Enchant { get; set; } = "";
         }
 
         public class InventorySlot
@@ -83,36 +88,47 @@ namespace DBReader
         {
             public string Category { get; set; } = "";
             public string Name { get; set; } = "";
+            public int Level { get; set; }
+            public string Enchant { get; set; } = "";
+        }
+
+
+        public class EnchantData
+        {
+            public string Id { get; set; } = "";
+            public string IconCode { get; set; } = "";
         }
         #endregion
 
         private void LoadIniFiles(string path)
         {
             _itemDb.Clear();
+            _enchantDb.Clear();
             _nodes.Clear();
+
             try
             {
                 var big5 = Encoding.GetEncoding(950);
-                string[] itemFiles = { "data/db/C_Item.ini", "data/db/C_ItemMall.ini" };
+
+                // 🔹 CARREGA APENAS ITENS (93 COLUNAS)
+                string[] itemFiles =
+                {
+            "data/db/C_Item.ini",
+            "data/db/C_ItemMall.ini"
+        };
 
                 foreach (var file in itemFiles)
                 {
                     string fullPath = Path.Combine(path, file);
                     if (!File.Exists(fullPath)) continue;
 
-                    // Lemos todas as linhas
                     string[] lines = File.ReadAllLines(fullPath, big5);
 
                     if (lines.Length > 1)
                     {
-                        // Unimos tudo a partir da segunda linha (índice 1) 
-                        // para ignorar o cabeçalho, exatamente como o f.read().split('\n', 1) do Python
                         string contentRemaining = string.Join("\n", lines.Skip(1));
-
-                        // Agora sim separamos por pipes
                         string[] raw = contentRemaining.Split('|');
 
-                        // Seguindo a lógica range(0, len(raw)-93, 93)
                         for (int i = 0; i <= raw.Length - 93; i += 93)
                         {
                             string id = raw[i].Trim();
@@ -120,8 +136,11 @@ namespace DBReader
                             {
                                 _itemDb[id] = new ItemData
                                 {
+                                    Id = id,
                                     IconCode = raw[i + 1].Trim(),
                                     Name = raw[i + 9].Trim(),
+                                    Level = int.TryParse(raw[i + 16].Trim(), out var lvl) ? lvl : 0,
+                                    Enchant = raw[i + 69].Trim(), // 🔥 ID DO ENCHANT
                                     FlagHide = raw[i + 81].Trim()
                                 };
                             }
@@ -129,11 +148,14 @@ namespace DBReader
                     }
                 }
 
-                // Tradução do T_Node (ANSI)
+                // 🔹 CARREGA ENCHANT SEPARADO
+                string enchantPath = Path.Combine(path, "data/db/C_Enchant.ini");
+                LoadEnchantIni(enchantPath);
+
+                // 🔹 CARREGA NODES
                 string nodePath = Path.Combine(path, "data/Translate/T_Node.ini");
                 if (File.Exists(nodePath))
                 {
-                    // O Python não pula a primeira linha no T_Node, então faremos igual
                     string nodeContent = File.ReadAllText(nodePath, Encoding.GetEncoding(1252));
                     string[] nodeRaw = nodeContent.Split('|');
 
@@ -147,13 +169,53 @@ namespace DBReader
                     }
                 }
 
-                // Debug para conferir no console
                 System.Diagnostics.Debug.WriteLine($"Itens carregados: {_itemDb.Count}");
+                System.Diagnostics.Debug.WriteLine($"Enchants carregados: {_enchantDb.Count}");
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Erro ao carregar INIs: " + ex.Message);
             }
+        }
+
+
+        private void LoadEnchantIni(string path)
+        {
+            if (!File.Exists(path))
+                return;
+
+            var big5 = Encoding.GetEncoding(950);
+
+            string[] lines = File.ReadAllLines(path, big5);
+
+            if (lines.Length <= 1)
+                return;
+
+            // Ignora primeira linha
+            string content = string.Join("", lines.Skip(1));
+
+            string[] raw = content.Split('|');
+
+            _enchantDb.Clear();
+
+            int blockSize = 63;
+
+            for (int i = 0; i <= raw.Length - blockSize; i += blockSize)
+            {
+                string id = raw[i].Trim();
+                string icon = raw[i + 1].Trim();
+
+                if (!string.IsNullOrWhiteSpace(id))
+                {
+                    _enchantDb[id] = new EnchantData
+                    {
+                        Id = id,
+                        IconCode = icon
+                    };
+                }
+            }
+
+            Debug.WriteLine("Enchants carregados FINAL: " + _enchantDb.Count);
         }
 
         private void LoadPlayers()
@@ -198,45 +260,76 @@ namespace DBReader
         private void UpdateTalents(Player p)
         {
             var talentDisplays = new List<TalentDisplay>();
+
             var categories = new Dictionary<string, string> {
-                {"G1", "TERRA"}, {"S1", "ESTRELA"}, {"M1", "LUA"}, {"U1", "SOL"},
-                {"G2", "ANCIÃO TERRA"}, {"S2", "ANCIÃO ESTRELA"}, {"M2", "ANCIÃO LUA"}, {"U2", "ANCIÃO SOL"}
-            };
+        {"G1", "TERRA"}, {"S1", "ESTRELA"}, {"M1", "LUA"}, {"U1", "SOL"},
+        {"G2", "ANCIÃO TERRA"}, {"S2", "ANCIÃO ESTRELA"},
+        {"M2", "ANCIÃO LUA"}, {"U2", "ANCIÃO SOL"}
+    };
 
             foreach (var cat in categories)
             {
-                // Pegamos o ID numérico que veio do Banco de Dados
                 int idDoBanco = p.Talents[cat.Key];
-                string tName = "Vazio";
-                BitmapSource? icon = null;
 
-                // Procuramos esse ID como STRING dentro do dicionário carregado do INI
-                string searchKey = idDoBanco.ToString();
+                string tName = "Vazio";
+                int lvl = 0;
+                string enchantId = "";
+                BitmapSource? icon = null;
 
                 if (idDoBanco > 0)
                 {
-                    if (_itemDb.TryGetValue(searchKey, out var info))
+                    string itemId = idDoBanco.ToString();
+
+                    if (_itemDb.TryGetValue(itemId, out var itemInfo))
                     {
-                        tName = info.Name;
-                        icon = GetIcon(info.IconCode);
+                        tName = itemInfo.Name;
+                        lvl = itemInfo.Level;
+                        enchantId = itemInfo.Enchant; // 🔥 PEGAMOS O ENCHANT DO ITEM
+
+                        // 🔥 AGORA BUSCA O ÍCONE NO C_ENCHANT
+                        if (!string.IsNullOrWhiteSpace(enchantId) &&
+                            _enchantDb.TryGetValue(enchantId, out var enchantInfo))
+                        {
+                            icon = GetIcon(enchantInfo.IconCode);
+                        }
                     }
                     else
                     {
-                        // Se cair aqui, o ID existe no banco mas não foi achado no INI
                         tName = $"Desconhecido ({idDoBanco})";
                     }
                 }
 
-                // Atualizar ícone no Canvas (UI)
                 var imgControl = this.FindName($"Slot{cat.Key}") as Image;
-                if (imgControl != null) imgControl.Source = icon;
 
-                talentDisplays.Add(new TalentDisplay { Category = cat.Value, Name = tName });
+                if (imgControl != null)
+                {
+                    imgControl.Source = icon;
+
+                    if (idDoBanco > 0)
+                    {
+                        imgControl.ToolTip =
+                            $"Nome: {tName}\n" +
+                            $"ID Item: {idDoBanco}\n" +
+                            $"Enchant ID: {enchantId}\n" +
+                            $"Level: {lvl}";
+                    }
+                    else
+                    {
+                        imgControl.ToolTip = null;
+                    }
+                }
+
+                talentDisplays.Add(new TalentDisplay
+                {
+                    Category = cat.Value,
+                    Name = tName,
+                    Level = lvl,
+                    Enchant = enchantId
+                });
             }
 
-            TalentNameList.ItemsSource = null;
             TalentNameList.ItemsSource = talentDisplays;
-        }
+        }   
 
         private void LoadInventory(int playerId)
         {
@@ -273,7 +366,11 @@ namespace DBReader
                         {
                             Icon = GetIcon(info.IconCode),
                             Amount = displayAmount,
-                            ToolTip = $"{info.Name}\nID: {itemId}"
+                            ToolTip =
+                                $"{info.Name}\n" +
+                                $"Lv: {info.Level}\n" +
+                                $"Enchant: {info.Enchant}\n" +
+                                $"ID: {itemId}"
                         };
                     }
                     idx++;
@@ -287,28 +384,47 @@ namespace DBReader
 
         private BitmapSource? GetIcon(string code)
         {
-            if (string.IsNullOrEmpty(_clientPath) || string.IsNullOrEmpty(code)) return null;
-            string cleanCode = code.Trim();
-            string ddsPath = Path.Combine(_clientPath, "UI", "itemicon", $"{cleanCode}.dds");
+            if (string.IsNullOrEmpty(_clientPath) || string.IsNullOrEmpty(code))
+                return null;
 
-            if (!File.Exists(ddsPath)) return null;
+            string cleanCode = code.Trim();
+
+            string itemPath = Path.Combine(_clientPath, "UI", "itemicon", $"{cleanCode}.dds");
+            string skillPath = Path.Combine(_clientPath, "UI", "skillicon", $"{cleanCode}.dds");
+
+            string? finalPath = null;
+
+            if (File.Exists(itemPath))
+                finalPath = itemPath;
+            else if (File.Exists(skillPath))
+                finalPath = skillPath;
+            else
+                return null;
 
             try
             {
-                using var image = new MagickImage(ddsPath);
+                using var image = new MagickImage(finalPath);
                 image.Format = MagickFormat.Png;
-                if (image.Width > 64) image.Resize(42, 42);
+
+                if (image.Width > 64)
+                    image.Resize(42, 42);
+
                 var bytes = image.ToByteArray();
                 using var ms = new MemoryStream(bytes);
+
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
                 bitmap.StreamSource = ms;
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.EndInit();
                 bitmap.Freeze();
+
                 return bitmap;
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
 
         private void InitializeEmptyInventory()
