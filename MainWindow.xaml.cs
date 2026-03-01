@@ -19,24 +19,57 @@ namespace DBReader
         private readonly string _clientPath;
         private Dictionary<string, ItemData> _itemDb = new Dictionary<string, ItemData>();
         private Dictionary<string, EnchantData> _enchantDb = new Dictionary<string, EnchantData>();
+        private Dictionary<string, ItemTranslateData> _itemTranslateDb = new Dictionary<string, ItemTranslateData>();
+        private Dictionary<string, EnchantTranslateData> _enchantTranslateDb = new Dictionary<string, EnchantTranslateData>();
         private Dictionary<string, string> _nodes = new Dictionary<string, string>();
         private List<Player> _allPlayers = new List<Player>();
+        private string RemoveColorTags(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+            // Remove qualquer sequência que comece com $, tenha qualquer caractere (exceto $) e termine com $
+            return System.Text.RegularExpressions.Regex.Replace(input, @"\$[^$]*\$", "").Trim();
+        }
+        private Dictionary<int, int> LoadBags(int playerId, int containerIndex)
+        {
+            var bags = new Dictionary<int, int>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connStr);
+                conn.Open();
+                string sql = "SELECT loc, durability FROM bags WHERE player_id = @pid AND container_index = @containerIndex ORDER BY loc";
+                using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("pid", playerId);
+                cmd.Parameters.AddWithValue("containerIndex", containerIndex);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    int loc = reader.GetInt32(0);
+                    int slots = reader.GetInt32(1);
+                    bags[loc] = slots;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Erro ao carregar bags do containerIndex {containerIndex}: {ex.Message}");
+            }
+            return bags;
+        }
 
         private readonly Dictionary<int, string> CLASS_MAP = new Dictionary<int, string> {
-            {0, "Novice"}, {1, "Fighter"}, {2, "Warrior"}, {3, "Berserker"}, {4, "Paladin"},
-            {5, "Hunter"}, {6, "Archer"}, {7, "Ranger"}, {8, "Assassin"}, {9, "Acolyte"},
-            {10, "Priest"}, {11, "Cleric"}, {12, "Sage"}, {13, "Spellcaster"}, {14, "Mage"},
-            {15, "Wizard"}, {16, "Necromancer"}, {17, "Warlord"}, {18, "Templar"}, {19, "Sharpshooter"},
-            {20, "Darkstalker"}, {21, "Prophet"}, {22, "Mystic"}, {23, "Archmage"}, {24, "Demonologist"},
-            {25, "Mechanic"}, {26, "Machinist"}, {27, "Engineer"}, {28, "Demolitionist"}, {29, "Gearmaster"},
-            {30, "Gunner"}, {32, "Deathknight"}, {33, "Crusader"}, {34, "Hawkeye"}, {35, "Windshadow"},
-            {36, "Saint"}, {37, "Shaman"}, {38, "Avatar"}, {39, "Shadowlord"}, {40, "Destroyer"},
-            {41, "Holy Knight"}, {42, "Predator"}, {43, "Shinobi"}, {44, "Archangel"}, {45, "Druid"},
-            {46, "Warlock"}, {47, "Shinigami"}, {48, "Cogmaster"}, {49, "Bombardier"}, {50, "Mechmaster"},
-            {51, "Artillerist"}, {52, "Wanderer"}, {53, "Drifter"}, {54, "Void Runner"}, {55, "Time Traveler"},
-            {56, "Dimensionalist"}, {57, "Key Master"}, {58, "Reaper"}, {59, "Chronomancer"}, {60, "Phantom"},
-            {61, "Chronoshifter"}
-        };
+     {0, "Aprendiz"}, {1, "Lutador"}, {2, "Guerreiro"}, {3, "Berserker"}, {4, "Paladino"},
+     {5, "Caçador"}, {6, "Arqueiro"}, {7, "Ranger"}, {8, "Assassino"}, {9, "Acólito"},
+     {10, "Sacerdote"}, {11, "Clérigo"}, {12, "Sábio"}, {13, "Bruxo"}, {14, "Mago"},
+     {15, "Feiticeiro"}, {16, "Necromante"}, {17, "Senhor da Guerra"}, {18, "Templário"}, {19, "Franco Atirador"},
+     {20, "Sicário Sombrio"}, {21, "Profeta"}, {22, "Místico"}, {23, "Arquimago"}, {24, "Demonologista"},
+     {25, "Maquinista Aprendiz"}, {26, "Maquinista"}, {27, "Agressor"}, {28, "Demolidor"}, {29, "Prime"},
+     {30, "Optimus"}, {32, "Cavaleiro da Morte"}, {33, "Cruzado"}, {34, "Mercenário"}, {35, "Ninja"},
+     {36, "Santo"}, {37, "Xamã"}, {38, "Avatar"}, {39, "Emissário dos Mortos"}, {40, "Destruidor"},
+     {41, "Cavaleiro Sagrado"}, {42, "Predador"}, {43, "Shinobi"}, {44, "Arcanjo"}, {45, "Druida"},
+     {46, "Bruxo"}, {47, "Shinigami"}, {48, "Megatron"}, {49, "Galvatron"}, {50, "Ômega"},
+     {51, "Titã Celeste"}, {52, "Viajante"}, {53, "Nômade"}, {54, "Espadachim"}, {55, "Ilusionista"},
+     {56, "Samurai"}, {57, "Áugure"}, {58, "Ronin"}, {59, "Oráculo"}, {60, "Mestre Dimensional"},
+     {61, "Cronos"}
+    };
 
         public MainWindow(string connectionString, string clientPath)
         {
@@ -49,7 +82,7 @@ namespace DBReader
 
             this.Loaded += (s, e) => {
                 LoadIniFiles(_clientPath);
-                InitializeEmptyInventory();
+                //InitializeEmptyInventory(); 
                 LoadPlayers();
             };
         }
@@ -75,6 +108,20 @@ namespace DBReader
             public string FlagHide { get; set; } = "";
             public int Level { get; set; }
             public string Enchant { get; set; } = "";
+        }
+
+        public class ItemTranslateData
+        {
+            public string Name { get; set; } = "";
+            public string Description { get; set; } = "";
+        }
+
+        public class EnchantTranslateData
+        {
+            public string Name { get; set; } = "";
+            public string Desc1 { get; set; } = "";
+            public string Desc2 { get; set; } = "";
+            public string Desc3 { get; set; } = "";
         }
 
         public class InventorySlot
@@ -105,25 +152,22 @@ namespace DBReader
             _itemDb.Clear();
             _enchantDb.Clear();
             _nodes.Clear();
+            _itemTranslateDb.Clear();
+            _enchantTranslateDb.Clear();
 
             try
             {
                 var big5 = Encoding.GetEncoding(950);
+                var ansi = Encoding.GetEncoding(1252);
 
-                // 🔹 CARREGA APENAS ITENS (93 COLUNAS)
-                string[] itemFiles =
-                {
-            "data/db/C_Item.ini",
-            "data/db/C_ItemMall.ini"
-        };
-
+                // 🔹 CARREGA ITENS DO BANCO DE DADOS (C_Item.ini e C_ItemMall.ini) - 93 colunas
+                string[] itemFiles = { "data/db/C_Item.ini", "data/db/C_ItemMall.ini" };
                 foreach (var file in itemFiles)
                 {
                     string fullPath = Path.Combine(path, file);
                     if (!File.Exists(fullPath)) continue;
 
                     string[] lines = File.ReadAllLines(fullPath, big5);
-
                     if (lines.Length > 1)
                     {
                         string contentRemaining = string.Join("\n", lines.Skip(1));
@@ -140,7 +184,7 @@ namespace DBReader
                                     IconCode = raw[i + 1].Trim(),
                                     Name = raw[i + 9].Trim(),
                                     Level = int.TryParse(raw[i + 16].Trim(), out var lvl) ? lvl : 0,
-                                    Enchant = raw[i + 69].Trim(), // 🔥 ID DO ENCHANT
+                                    Enchant = raw[i + 69].Trim(),
                                     FlagHide = raw[i + 81].Trim()
                                 };
                             }
@@ -148,15 +192,62 @@ namespace DBReader
                     }
                 }
 
-                // 🔹 CARREGA ENCHANT SEPARADO
+                // 🔹 CARREGA ENCHANTS DO BANCO DE DADOS (C_Enchant.ini) - 63 colunas
                 string enchantPath = Path.Combine(path, "data/db/C_Enchant.ini");
-                LoadEnchantIni(enchantPath);
+                LoadEnchantIni(enchantPath); // Este método já deve preencher _enchantDb
 
-                // 🔹 CARREGA NODES
+                // 🔹 CARREGA TRADUÇÕES DE ITENS (T_Item.ini e T_ItemMall.ini) - 3 colunas (ID, Nome, Descrição)
+                string[] translateItemFiles = { "data/Translate/T_Item.ini", "data/Translate/T_ItemMall.ini" };
+                foreach (var file in translateItemFiles)
+                {
+                    string fullPath = Path.Combine(path, file);
+                    if (!File.Exists(fullPath)) continue;
+
+                    string content = File.ReadAllText(fullPath, ansi);
+                    string[] raw = content.Split('|');
+
+                    for (int i = 0; i <= raw.Length - 3; i += 3)
+                    {
+                        string id = raw[i].Trim();
+                        if (!string.IsNullOrEmpty(id))
+                        {
+                            _itemTranslateDb[id] = new ItemTranslateData
+                            {
+                                Name = raw[i + 1].Trim(),
+                                Description = raw[i + 2].Trim()
+                            };
+                        }
+                    }
+                }
+
+                // 🔹 CARREGA TRADUÇÕES DE ENCHANT (T_Enchant.ini) - 5 colunas (ID, Nome, Desc1, Desc2, Desc3)
+                string enchantTranslatePath = Path.Combine(path, "data/Translate/T_Enchant.ini");
+                if (File.Exists(enchantTranslatePath))
+                {
+                    string content = File.ReadAllText(enchantTranslatePath, ansi);
+                    string[] raw = content.Split('|');
+
+                    for (int i = 0; i <= raw.Length - 5; i += 5)
+                    {
+                        string id = raw[i].Trim();
+                        if (!string.IsNullOrEmpty(id))
+                        {
+                            _enchantTranslateDb[id] = new EnchantTranslateData
+                            {
+                                Name = raw[i + 1].Trim(),
+                                Desc1 = raw[i + 2].Trim(),
+                                Desc2 = raw[i + 3].Trim(),
+                                Desc3 = raw[i + 4].Trim()
+                            };
+                        }
+                    }
+                }
+
+                // 🔹 CARREGA NODES (T_Node.ini) - originalmente com 11 colunas? Mantendo a lógica anterior
                 string nodePath = Path.Combine(path, "data/Translate/T_Node.ini");
                 if (File.Exists(nodePath))
                 {
-                    string nodeContent = File.ReadAllText(nodePath, Encoding.GetEncoding(1252));
+                    string nodeContent = File.ReadAllText(nodePath, ansi);
                     string[] nodeRaw = nodeContent.Split('|');
 
                     for (int i = 0; i <= nodeRaw.Length - 11; i += 11)
@@ -169,8 +260,10 @@ namespace DBReader
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"Itens carregados: {_itemDb.Count}");
-                System.Diagnostics.Debug.WriteLine($"Enchants carregados: {_enchantDb.Count}");
+                Debug.WriteLine($"Itens carregados: {_itemDb.Count}");
+                Debug.WriteLine($"Enchants carregados: {_enchantDb.Count}");
+                Debug.WriteLine($"Traduções de itens: {_itemTranslateDb.Count}");
+                Debug.WriteLine($"Traduções de enchants: {_enchantTranslateDb.Count}");
             }
             catch (Exception ex)
             {
@@ -191,7 +284,7 @@ namespace DBReader
             if (lines.Length <= 1)
                 return;
 
-            // Ignora primeira linha
+            // Ignora Versão (primeira linha dos Arquivos C_*.ini) 
             string content = string.Join("", lines.Skip(1));
 
             string[] raw = content.Split('|');
@@ -262,9 +355,9 @@ namespace DBReader
             var talentDisplays = new List<TalentDisplay>();
 
             var categories = new Dictionary<string, string> {
-        {"G1", "TERRA"}, {"S1", "ESTRELA"}, {"M1", "LUA"}, {"U1", "SOL"},
-        {"G2", "ANCIÃO TERRA"}, {"S2", "ANCIÃO ESTRELA"},
-        {"M2", "ANCIÃO LUA"}, {"U2", "ANCIÃO SOL"}
+        {"G1", "Talento Terrestre :"}, {"S1", "Talento Estrela :"}, {"M1", "Talento da Lua :"}, {"U1", "Talento do Sol :"},
+        {"G2", "Ancião Terrestre :"}, {"S2", "Ancião Estrela :"},
+        {"M2", "Ancião da Lua :"}, {"U2", "Ancião do Sol :"}
     };
 
             foreach (var cat in categories)
@@ -282,11 +375,16 @@ namespace DBReader
 
                     if (_itemDb.TryGetValue(itemId, out var itemInfo))
                     {
-                        tName = itemInfo.Name;
                         lvl = itemInfo.Level;
-                        enchantId = itemInfo.Enchant; // 🔥 PEGAMOS O ENCHANT DO ITEM
+                        enchantId = itemInfo.Enchant;
 
-                        // 🔥 AGORA BUSCA O ÍCONE NO C_ENCHANT
+                        // Nome do item (traduzido ou original) com remoção de tags
+                        if (_itemTranslateDb.TryGetValue(itemId, out var trans))
+                            tName = RemoveColorTags(trans.Name);
+                        else
+                            tName = RemoveColorTags(itemInfo.Name);
+
+                        // Ícone do enchant (se houver)
                         if (!string.IsNullOrWhiteSpace(enchantId) &&
                             _enchantDb.TryGetValue(enchantId, out var enchantInfo))
                         {
@@ -307,11 +405,41 @@ namespace DBReader
 
                     if (idDoBanco > 0)
                     {
-                        imgControl.ToolTip =
-                            $"Nome: {tName}\n" +
-                            $"ID Item: {idDoBanco}\n" +
-                            $"Enchant ID: {enchantId}\n" +
-                            $"Level: {lvl}";
+                        string itemId = idDoBanco.ToString();
+                        // Informações do enchant para tooltip
+                        string enchantDisplay = "";
+                        string enchantDesc1 = "", enchantDesc2 = "", enchantDesc3 = "";
+
+                        if (!string.IsNullOrWhiteSpace(enchantId))
+                        {
+                            if (_enchantTranslateDb.TryGetValue(enchantId, out var enchantTrans))
+                            {
+                                string enchantName = RemoveColorTags(enchantTrans.Name);
+                                enchantDesc1 = RemoveColorTags(enchantTrans.Desc1);
+                                enchantDesc2 = RemoveColorTags(enchantTrans.Desc2);
+                                enchantDesc3 = RemoveColorTags(enchantTrans.Desc3);
+                                enchantDisplay = $"{enchantName} (ID: {enchantId})";
+                            }
+                            else
+                            {
+                                enchantDisplay = $"Enchant ID: {enchantId}";
+                            }
+                        }
+
+                        var tooltipBuilder = new StringBuilder();
+                        tooltipBuilder.AppendLine($"{tName} (ID: {itemId})");
+                        tooltipBuilder.AppendLine($"Level: {lvl}");
+
+                        if (!string.IsNullOrWhiteSpace(enchantDisplay))
+                            tooltipBuilder.AppendLine($"Encantamento: {enchantDisplay}");
+                        if (!string.IsNullOrWhiteSpace(enchantDesc1))
+                            tooltipBuilder.AppendLine(enchantDesc1);
+                        if (!string.IsNullOrWhiteSpace(enchantDesc2))
+                            tooltipBuilder.AppendLine(enchantDesc2);
+                        if (!string.IsNullOrWhiteSpace(enchantDesc3))
+                            tooltipBuilder.AppendLine(enchantDesc3);
+
+                        imgControl.ToolTip = tooltipBuilder.ToString().Trim();
                     }
                     else
                     {
@@ -329,57 +457,124 @@ namespace DBReader
             }
 
             TalentNameList.ItemsSource = talentDisplays;
-        }   
+        }
 
-        private void LoadInventory(int playerId)
+        private void LoadInventory(int playerId, string tableName, Dictionary<int, int> bags, ItemsControl targetGrid)
         {
-            var slots = new List<InventorySlot>();
-            for (int i = 0; i < 240; i++) slots.Add(new InventorySlot());
+            // Total de slots: container 0 fixo (24) + soma das bags
+            int totalSlots = 24;
+            foreach (var slots in bags.Values)
+                totalSlots += slots;
+
+            var slotsList = new List<InventorySlot>(totalSlots);
+            for (int i = 0; i < totalSlots; i++)
+                slotsList.Add(new InventorySlot()); // Preenche com vazio
 
             try
             {
                 using var conn = new NpgsqlConnection(_connStr);
                 conn.Open();
-                string sql = "SELECT item_id, durability FROM inventory1 WHERE player_id = @pid ORDER BY container_index, loc";
+
+                // Inclui container_index e loc para posicionar corretamente
+                string sql = $"SELECT item_id, durability, strengthen, container_index, loc FROM {tableName} WHERE player_id = @pid ORDER BY container_index, loc";
                 using var cmd = new NpgsqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("pid", playerId);
                 using var reader = cmd.ExecuteReader();
 
-                int idx = 0;
-                while (reader.Read() && idx < 240)
+                while (reader.Read())
                 {
                     string itemId = reader["item_id"].ToString()?.Trim() ?? "";
                     int amount = Convert.ToInt32(reader["durability"]);
+                    int strengthen = reader["strengthen"] != DBNull.Value ? Convert.ToInt32(reader["strengthen"]) : 0;
+                    int containerIdx = reader["container_index"] != DBNull.Value ? Convert.ToInt32(reader["container_index"]) : 0;
+                    int loc = reader["loc"] != DBNull.Value ? Convert.ToInt32(reader["loc"]) : 0;
 
                     if (_itemDb.TryGetValue(itemId, out var info))
                     {
-                        // LÓGICA SOLICITADA:
-                        // Se a coluna 81 for "1" ou estiver vazia, não exibimos a quantidade (definimos como 0 ou 1)
-                        // Geralmente, se não deve exibir a contagem, tratamos como 0 para o Badge de quantidade sumir
                         int displayAmount = amount;
                         if (info.FlagHide == "1" || string.IsNullOrEmpty(info.FlagHide))
-                        {
                             displayAmount = 0;
+
+                        // Nome do item (traduzido)
+                        string itemName = _itemTranslateDb.TryGetValue(itemId, out var trans)
+                            ? RemoveColorTags(trans.Name)
+                            : RemoveColorTags(info.Name);
+
+                        // Informações do enchant
+                        string enchantDisplay = "";
+                        string enchantDesc1 = "", enchantDesc2 = "", enchantDesc3 = "";
+                        if (!string.IsNullOrWhiteSpace(info.Enchant))
+                        {
+                            if (_enchantTranslateDb.TryGetValue(info.Enchant, out var enchantTrans))
+                            {
+                                string enchantName = RemoveColorTags(enchantTrans.Name);
+                                enchantDesc1 = RemoveColorTags(enchantTrans.Desc1);
+                                enchantDesc2 = RemoveColorTags(enchantTrans.Desc2);
+                                enchantDesc3 = RemoveColorTags(enchantTrans.Desc3);
+                                enchantDisplay = $"{enchantName} (ID: {info.Enchant})";
+                            }
+                            else
+                            {
+                                enchantDisplay = $"Enchant ID: {info.Enchant}";
+                            }
                         }
 
-                        slots[idx] = new InventorySlot
+                        // Monta tooltip
+                        StringBuilder tooltip = new StringBuilder();
+                        string itemDisplay = strengthen > 0
+                            ? $"{itemName} +{strengthen} (ID: {itemId})"
+                            : $"{itemName} (ID: {itemId})";
+                        tooltip.AppendLine(itemDisplay);
+                        tooltip.AppendLine($"Level: {info.Level}");
+                        if (!string.IsNullOrWhiteSpace(enchantDisplay))
+                            tooltip.AppendLine($"Encantamento: {enchantDisplay}");
+                        if (!string.IsNullOrWhiteSpace(enchantDesc1))
+                            tooltip.AppendLine(enchantDesc1);
+                        if (!string.IsNullOrWhiteSpace(enchantDesc2))
+                            tooltip.AppendLine(enchantDesc2);
+                        if (!string.IsNullOrWhiteSpace(enchantDesc3))
+                            tooltip.AppendLine(enchantDesc3);
+
+                        // Calcular índice global
+                        int globalIndex = 0;
+                        if (containerIdx == 0)
                         {
-                            Icon = GetIcon(info.IconCode),
-                            Amount = displayAmount,
-                            ToolTip =
-                                $"{info.Name}\n" +
-                                $"Lv: {info.Level}\n" +
-                                $"Enchant: {info.Enchant}\n" +
-                                $"ID: {itemId}"
-                        };
+                            // Container 0: loc deve ser 0-23
+                            globalIndex = loc;
+                        }
+                        else
+                        {
+                            // Soma os 24 do container 0
+                            globalIndex = 24;
+                            // Soma os slots dos containers anteriores a este
+                            for (int c = 1; c < containerIdx; c++)
+                            {
+                                if (bags.TryGetValue(c, out int slots))
+                                    globalIndex += slots;
+                            }
+                            // Adiciona a posição dentro deste container
+                            globalIndex += loc;
+                        }
+
+                        if (globalIndex >= 0 && globalIndex < totalSlots)
+                        {
+                            slotsList[globalIndex] = new InventorySlot
+                            {
+                                Icon = GetIcon(info.IconCode),
+                                Amount = displayAmount,
+                                ToolTip = tooltip.ToString().Trim()
+                            };
+                        }
                     }
-                    idx++;
                 }
             }
-            catch { /* Tratamento de erro */ }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Erro ao carregar {tableName}: {ex.Message}");
+            }
 
-            InventoryGrid.ItemsSource = null;
-            InventoryGrid.ItemsSource = slots;
+            targetGrid.ItemsSource = null;
+            targetGrid.ItemsSource = slotsList;
         }
 
         private BitmapSource? GetIcon(string code)
@@ -431,7 +626,11 @@ namespace DBReader
         {
             var empty = new List<InventorySlot>();
             for (int i = 0; i < 240; i++) empty.Add(new InventorySlot());
+
+            // Inicializa os 3 grids vazios
             InventoryGrid.ItemsSource = empty;
+            ElfInventoryGrid.ItemsSource = empty;
+            StorageGrid.ItemsSource = empty;
         }
 
         private void GridPlayers_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -445,7 +644,15 @@ namespace DBReader
                 StatusLoc.Text = _nodes.GetValueOrDefault(p.NodeId.ToString(), $"Mapa {p.NodeId}");
                 UpdateGoldDisplay(p.Gold);
                 UpdateTalents(p);
-                LoadInventory(p.Id);
+
+                // Carrega as bags para cada tipo usando o container_index correto
+                var inventoryBags = LoadBags(p.Id, 0);   // container_index 0 = inventory1
+                var elfBags = LoadBags(p.Id, 8);         // container_index 8 = elfinventory
+                var storageBags = LoadBags(p.Id, 4);     // container_index 4 = storage1
+
+                LoadInventory(p.Id, "inventory1", inventoryBags, InventoryGrid);
+                LoadInventory(p.Id, "elfinventory", elfBags, ElfInventoryGrid);
+                LoadInventory(p.Id, "storage1", storageBags, StorageGrid);
             }
         }
 
@@ -468,24 +675,25 @@ namespace DBReader
 
         private void BtnSync_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Salva quem é o jogador selecionado antes de recarregar
             var selectedPlayer = GridPlayers.SelectedItem as Player;
-
-            // 2. Recarrega a lista lateral (isso limpa o ItemsSource e busca do banco)
             LoadPlayers();
 
-            // 3. Se havia alguém selecionado, re-seleciona e atualiza os dados
             if (selectedPlayer != null)
             {
-                // Tenta achar o mesmo jogador na nova lista carregada
                 var updatedPlayer = _allPlayers.FirstOrDefault(p => p.Id == selectedPlayer.Id);
                 if (updatedPlayer != null)
                 {
                     GridPlayers.SelectedItem = updatedPlayer;
-
-                    // Força a atualização dos componentes que buscam dados extras do banco
-                    LoadInventory(updatedPlayer.Id);
                     UpdateTalents(updatedPlayer);
+
+                    // Recarrega as bags com os container_index corretos
+                    var inventoryBags = LoadBags(updatedPlayer.Id, 0);
+                    var elfBags = LoadBags(updatedPlayer.Id, 8);
+                    var storageBags = LoadBags(updatedPlayer.Id, 4);
+
+                    LoadInventory(updatedPlayer.Id, "inventory1", inventoryBags, InventoryGrid);
+                    LoadInventory(updatedPlayer.Id, "elfinventory", elfBags, ElfInventoryGrid);
+                    LoadInventory(updatedPlayer.Id, "storage1", storageBags, StorageGrid);
                 }
             }
         }
