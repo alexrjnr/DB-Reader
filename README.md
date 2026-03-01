@@ -9,7 +9,8 @@ Você pode baixar a versão executável pronta para uso (Budda Edition) através
 
 O **DB Reader** é uma ferramenta de visualização de dados desenvolvida em **C# / WPF (.NET 8)** projetada para facilitar a leitura e análise de informações de personagens em bancos de dados relacionais (PostgreSQL/SQL Server). Esta edição especial foca na experiência do usuário, trazendo um layout otimizado para a visualização de **Status, Talentos e Inventário**.
 
-<img width="299" height="540" alt="image" src="https://github.com/user-attachments/assets/5071fb41-3e0b-42b0-ae7f-916f0d8dc110" />
+<img width="304" height="537" alt="image" src="https://github.com/user-attachments/assets/46c112a3-8ae6-421c-b265-433ec059a956" />
+
 
 
 ## 🚀 Funcionalidades Principal
@@ -31,7 +32,8 @@ O **DB Reader** é uma ferramenta de visualização de dados desenvolvida em **C
 
 
 
-<img width="1359" height="719" alt="image" src="https://github.com/user-attachments/assets/9bce0af2-c649-4637-bda5-f5361fcf39f0" />
+
+<img width="1082" height="638" alt="image" src="https://github.com/user-attachments/assets/8744f1e0-c1b9-48b2-9b4b-87945280f187" />
 
 
 ## 📦 Como Compilar
